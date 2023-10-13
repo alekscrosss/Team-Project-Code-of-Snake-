@@ -103,7 +103,7 @@ def process_folder(folder_path):
 
 def clean_folder_interface():
     folder_path = input("Enter the path to the folder you want to sort: ")
-    if not folder_path:
+    if not folder_path or not os.path.exists(folder_path) or not os.path.isdir(folder_path):
         print("You did not enter the path to the folder!!!!")
     else:
         process_folder(folder_path)
