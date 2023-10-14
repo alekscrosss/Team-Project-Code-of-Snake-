@@ -215,6 +215,7 @@
   ('lzma',
    'C:\\Users\\alex1\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\lzma.py',
    'PYMODULE'),
+  ('note', 'C:\\Users\\alex1\\Desktop\\Coder of Snake\\note.py', 'PYMODULE'),
   ('numbers',
    'C:\\Users\\alex1\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\numbers.py',
    'PYMODULE'),

@@ -2,8 +2,11 @@ from datetime import datetime
 from collections import UserDict
 import pickle
 from sort import clean_folder_interface
+from note import notebook_interface, Note
+import os
 
-
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ADDRESS_BOOK_PATH = os.path.join(BASE_DIR, 'address_book.dat')
 class Field:
     def __init__(self, value=None):
         self.value = value
@@ -14,11 +17,9 @@ class Field:
     def get_value(self):
         return self.value
 
-
 class Name(Field):
     def __init__(self, value):
         super().__init__(value)
-
 
 class Phone(Field):
     def set_value(self, value):
@@ -29,7 +30,6 @@ class Phone(Field):
     @staticmethod
     def validate_phone(phone):
         return len(phone) == 10 and phone.isdigit()
-
 
 class Birthday(Field):
     def __init__(self, value=None):
@@ -152,6 +152,10 @@ def handle_command(address_book, command):
         phones_str = ', '.join([p.get_value() for p in record.phones])
         return f"Contact {name} added with phones: {phones_str}"
 
+    elif action == "notebook":
+        notebook_interface()
+        return "Work with notebook is completed."
+
     elif action == "birthday" and args[0]:
         if len(args) < 2:
             return "Invalid format for 'add birthday' command. Please provide a name and a birthday date."
@@ -215,6 +219,7 @@ def handle_command(address_book, command):
     elif action == "clean":
         clean_folder_interface()
         return "Cleaning completed."
+
     else:
         return "Unknown command"
 
