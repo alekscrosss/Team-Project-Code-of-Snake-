@@ -106,7 +106,11 @@ def clean_folder_interface():
     if not folder_path or not os.path.exists(folder_path) or not os.path.isdir(folder_path):
         print("You did not enter the path to the folder!!!!")
     else:
-        process_folder(folder_path)
-
+        try:
+            process_folder(folder_path)
+            print("Clean completed successfully.")
+        except Exception as e:
+            print("Clean was not completed.")
+    return
 if __name__ == "__main__":
     clean_folder_interface()
