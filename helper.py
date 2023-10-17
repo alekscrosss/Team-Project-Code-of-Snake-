@@ -562,6 +562,5 @@ def main():
         response = handle_command(address_book, command)
         print(response)
 
-
 if __name__ == "__main__":
     main()
