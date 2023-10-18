@@ -207,7 +207,7 @@ class Record:
 class AddressBook(UserDict):
     def __init__(self, filename):
         super().__init__()
-        self.page_size = 10
+        self.page_size = 5
         self.filename = filename
 
     def add_record(self, record):
@@ -268,9 +268,40 @@ class AddressBook(UserDict):
         else:
             print(f"Contact {name} not found.")
 
+#Yuliya 18.10.23
+    def iterator(self, page_number=None):
+            records = list(self.data.values())
+
+            if page_number:
+                start_idx = (page_number - 1) * self.page_size
+                end_idx = start_idx + self.page_size
+                page_records = records[start_idx:end_idx]
+            else:
+                page_records = records
+
+            return page_records
+    
+    def get_page(self, page_number):
+        start_index = (page_number - 1) * self.page_size
+        end_index = start_index + self.page_size
+        records = list(self.data.values())[start_index:end_index]
+        return records
+
+    def get_total_pages(self):
+        total_contacts = len(self.data)
+        return (total_contacts + self.page_size - 1) // self.page_size
+
 
 def handle_command(address_book, command):
-    action, *args = command.lower().split()
+   # Розділити введену команду на частини
+    parts = command.lower().split()
+
+    # Перевірити, чи існують частини команди
+    if not parts:
+        print("Enter a command. Type 'helper' for a list of available commands.")
+        return ""
+    
+    action, *args = parts
 
     # 15.10.23 Nazar
     if action == "add":
@@ -300,6 +331,7 @@ def handle_command(address_book, command):
                 record.add_phone(phone_obj)
             else:
                 return "Invalid phone number format"
+        
 
         # Add email if present
         if email:
@@ -375,30 +407,40 @@ def handle_command(address_book, command):
         if record:
             change_type = args[1].lower()
             
+
+       
             if change_type == "phone" and len(args) >= 3:
                 new_phone = args[2]
-                record.edit_phone(record.phones[0].get_value(), new_phone)
-                address_book.save_to_file()
-                return f"Contact {name} phone number changed to {new_phone}"
-            
+                try:
+                    record.edit_phone(record.phones[0].get_value(), new_phone)
+                    address_book.save_to_file()
+                    # Empty string to suppress success message
+                    return "" if Phone.validate_phone(new_phone) else ""
+                except ValueError:
+                    return "Invalid phone number format"
+                
             elif change_type == "email" and len(args) >= 3:
                 new_email = args[2]
-                record.edit_email(record.emails[0].get_value(), new_email)
-                address_book.save_to_file()
-                return f"Contact {name} email added: {new_email}"
-                
+                try:
+                    record.edit_email(record.emails[0].get_value(), new_email)
+                    # Save only if email change is successful
+                    address_book.save_to_file()
+                    return ""  # Empty string to suppress success message
+                except ValueError:
+                    return "Invalid email format"
+            
+
+#modify Yuliya 18.10.23
             elif change_type == "birthday" and len(args) >= 3:
                 new_birthday = args[2]
-                record.birthday.set_value(new_birthday)
-                address_book.save_to_file()
-                return f"Contact {name} birthday changed to {new_birthday}"
-                
-            else:
-                return "Invalid format for 'change' command. Please provide a valid change type and value."
-
-        else:
-            return f"Contact {name} not found"
-        
+                try:
+                    datetime.strptime(new_birthday, "%d.%m.%y")
+                    record.birthday.set_value(new_birthday)
+                    address_book.save_to_file()
+                    return f"Contact {name} birthday changed to {new_birthday}"
+                except ValueError:
+                    print("Invalid date format. Please use 'dd.mm.yy'")
+                    return f"Contact {name} birthday didn't change. Invalid date format. Please use 'dd.mm.yy'"
 
 
 # 15.10.23 Nazar
@@ -464,26 +506,48 @@ def handle_command(address_book, command):
             return f"Email for {name}: {emails_str}"
         else:
             return f"Contact {name} not found"
-# 14.10.23 Nazar
+        
+
+
+# 14.10.23 Nazar / Yuliya pagination 18.10.23
     elif action == "show" and args and args[0] == "all":
-        if not address_book.data:
-            return "No contacts found"
-        else:
-            contacts_info = []
-            for name, record in address_book.data.items():
-                phones_str = ', '.join([str(p.get_value()) for p in record.phones])
-                email_str = ', '.join([str(email.get_value()) for email in record.get_emails()])
-                birthday_str = record.birthday.get_value() or "None"  # Use "None" if birthday is None
-                info = f"{name} |Phone: {phones_str or '-'} | Email:{email_str or '-'} | Birthday: {birthday_str or '-'}"
+        page_number = int(args[1]) if len(args) > 1 and args[1].isdigit() else 1
+        total_pages = address_book.get_total_pages()
 
-                # Check if birthday is present
-                if record.birthday.get_value():
-                    days_left = record.birthday.days_to_birthday()
-                    if days_left is not None:
-                        info += f" | {days_left} days left until the next birthday."
-                contacts_info.append(info)
-            return "\n".join(contacts_info)
+        if page_number < 1 or page_number > total_pages:
+            return f"Invalid page number. Please provide a number between 1 and {total_pages}."
 
+        page_records = address_book.iterator(page_number)
+
+        if not page_records:
+            return f"No contacts found on page {page_number}."
+
+        contacts_info = []
+        for record in page_records:
+            phones_str = ', '.join([str(p.get_value()) for p in record.phones])
+            email_str = ', '.join([str(email.get_value()) for email in record.get_emails()])
+            birthday_str = record.birthday.get_value() or "None"  # Використовуйте "None", якщо день народження немає
+            info = f"{record.name.get_value()} | Phone: {phones_str or '-'} | Email: {email_str or '-'} | Birthday: {birthday_str or '-'}"
+
+            # Перевірти чи є в наявності день народження
+            if record.birthday.get_value():
+                days_left = record.birthday.days_to_birthday()
+                if days_left is not None:
+                    info += f" | {days_left} days left until the next birthday."
+            contacts_info.append(info)
+
+#Yuliya 18.10.23
+        # Додамо опцію "наступна сторінка" та "попередня сторінка"
+        prev_page = page_number - 1 if page_number > 1 else None
+        next_page = page_number + 1 if page_number < total_pages else None
+        pagination_info = f"\nPage {page_number} of {total_pages} |"
+        if prev_page is not None:
+            pagination_info += f" Previous: 'show all {prev_page}' |"
+        if next_page is not None:
+            pagination_info += f" Next: 'show all {next_page}' |"
+        contacts_info.append(pagination_info)
+
+        return "\n".join(contacts_info)
 
 
     elif action == "celebration" and args and args[0] == "in":
@@ -526,6 +590,9 @@ def handle_command(address_book, command):
 
         )
 
+    elif action == "unknown":
+        print("Unknown command. Type 'helper' for a list of available commands.")
+        return "Unknown command"
 
 
     elif action == "hello":
@@ -550,17 +617,47 @@ def main():
     # Print the number of contacts loaded
     print(f"Address book loaded from {filename}. {len(address_book.data)} contacts found.") # 15.10.23 modify Yulia
 
-    #16.10.23 Yulia - save data befor exit
+    #Yuliya 18.10.23
+    # Словник для автодоповнення
+    command_autocomplete = {
+        'a': ['add'],
+        'c': ['change', 'celebration', 'clean', 'close'],
+        'd': ['delete'],
+        'e': ['exit'],
+        'f': ['find'],
+        'h': ['helper'],
+        'n': ['notebook'],
+        's': ['show all'],
+        'p': ['phone'],
+        # додайте інші літери за потребою
+    }
+    command_prompt = "Enter a command: "
+
+    # 16.10.23 Yulia - save data before exit
     while True:
-        command = input("Enter a command: ").strip()
+        user_input = input(command_prompt).strip()
 
-        if command.lower() in ["goodbye", "close", "exit"]:
-            address_book.save_to_file()  # Save the data before exiting
-            print("Good bye!")
-            break
+        if not user_input:
+            if not user_input:
+                print("Unknown command. Type 'helper' for a list of available commands.")
+            continue  # If the user just pressed Enter, provide another chance to enter
 
-        response = handle_command(address_book, command)
+        command = user_input[0]  # Take the first letter as the command
+
+        # Check if the entered letter has autocomplete options
+        autocomplete_options = command_autocomplete.get(command, [])
+        if autocomplete_options and len(user_input) == 1:
+            print("Available commands:", ', '.join(autocomplete_options))
+            continue  # Wait for the user to input the complete command
+
+        response = handle_command(address_book, user_input)
         print(response)
 
+        if user_input.lower() in ["goodbye", "close", "exit"]:
+            address_book.save_to_file()  # Save the data before exiting
+            print("Good bye!")
+            break  # Exit the loop and end the program
+
+       
 if __name__ == "__main__":
     main()

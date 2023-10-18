@@ -1,6 +1,7 @@
 import datetime
 import pickle
 
+
 class Note:
     def __init__(self, title, text, tags=None):
         self.title = title
@@ -92,6 +93,73 @@ def input_with_retry(prompt, validation_func=None, error_message="Invalid input!
             return data
         print(error_message)
 
+def add(notebook):
+    title = input_with_retry("Enter note title: ", lambda x: x != "")
+    text = input_with_retry("Enter note text: ", lambda x: x != "")
+    tags = input("Enter tags (comma separated, leave blank for none): ").split(',')
+    tags = [tag.strip() for tag in tags if tag.strip()]
+    notebook.add(title, text, tags)
+    notebook.save_to_file()
+
+def edit(notebook):
+    notebook.list_notes()
+    index = input_with_retry(
+        "Enter the index of the note you want to edit: ",
+        lambda x: x.isdigit() and 0 <= int(x) < len(notebook.notes),
+        "Please enter a valid index!"
+    )
+    index = int(index)
+
+    new_title = input("Enter new title (leave blank to keep current): ")
+    if not new_title:
+        new_title = None
+
+    new_text = input("Enter new text (leave blank to keep current): ")
+    if not new_text:
+        new_text = None
+
+    new_tags = input("Enter new tags (comma separated, leave blank for none): ").split(',')
+    new_tags = [tag.strip() for tag in new_tags if tag.strip()]
+
+    if notebook.edit(index, new_title, new_text, new_tags):
+        print("Note updated successfully!")
+    else:
+        print("Invalid index!")
+    notebook.save_to_file()
+
+def delete(notebook):
+    notebook.list_notes()
+    index = input_with_retry(
+        "Enter note index to delete: ",
+        lambda x: x.isdigit() and 0 <= int(x) < len(notebook.notes),
+        "Please enter a valid index!"
+    )
+    index = int(index)
+    notebook.delete(index)
+    notebook.save_to_file()
+
+def search(notebook):
+    keyword = input_with_retry("Enter a keyword to search for: ", lambda x: x != "")
+    matching_notes = notebook.search(keyword)
+    if matching_notes:
+        print("Matching notes:")
+        for note in matching_notes:
+            print(note)
+    else:
+        print("No matching notes found.")
+
+def clear(notebook):
+    notebook.clear_all()
+    print("All notes have been cleared.")
+    notebook.save_to_file()
+
+def tags(notebook):
+    tags = notebook.list_tags()
+    if tags:
+        print("Tags: ", ', '.join(tags))
+    else:
+        print("No tags found.")
+
 def notebook_interface():
     notebook = Notebook()
     notebook.load_from_file()
@@ -102,75 +170,19 @@ def notebook_interface():
         ).strip().lower()
 
         if command == 'add':
-            title = input_with_retry("Enter note title: ", lambda x: x != "")
-            text = input_with_retry("Enter note text: ", lambda x: x != "")
-            tags = input("Enter tags (comma separated, leave blank for none): ").split(',')
-            tags = [tag.strip() for tag in tags if tag.strip()]
-            notebook.add(title, text, tags)
-            notebook.save_to_file()
-
+            add(notebook)
         elif command == 'edit':
-            notebook.list_notes()
-            index = input_with_retry(
-                "Enter the index of the note you want to edit: ",
-                lambda x: x.isdigit() and 0 <= int(x) < len(notebook.notes),
-                "Please enter a valid index!"
-            )
-            index = int(index)
-
-            new_title = input("Enter new title (leave blank to keep current): ")
-            if not new_title:
-                new_title = None
-
-            new_text = input("Enter new text (leave blank to keep current): ")
-            if not new_text:
-                new_text = None
-
-            new_tags = input("Enter new tags (comma separated, leave blank for none): ").split(',')
-            new_tags = [tag.strip() for tag in new_tags if tag.strip()]
-
-            if notebook.edit(index, new_title, new_text, new_tags):
-                print("Note updated successfully!")
-            else:
-                print("Invalid index!")
-            notebook.save_to_file()
-
+            edit(notebook)
         elif command == 'delete':
-            notebook.list_notes()
-            index = input_with_retry(
-                "Enter note index to delete: ",
-                lambda x: x.isdigit() and 0 <= int(x) < len(notebook.notes),
-                "Please enter a valid index!"
-            )
-            index = int(index)
-            notebook.delete(index)
-            notebook.save_to_file()
-
+            delete(notebook)
         elif command == 'search':
-            keyword = input_with_retry("Enter a keyword to search for: ", lambda x: x != "")
-            matching_notes = notebook.search(keyword)
-            if matching_notes:
-                print("Matching notes:")
-                for note in matching_notes:
-                    print(note)
-            else:
-                print("No matching notes found.")
-
+            search(notebook)
         elif command == 'list':
             notebook.list_notes()
-
         elif command == 'clear':
-            notebook.clear_all()
-            print("All notes have been cleared.")
-            notebook.save_to_file()
-
+            clear(notebook)
         elif command == 'tags':
-            tags = notebook.list_tags()
-            if tags:
-                print("Tags: ", ', '.join(tags))
-            else:
-                print("No tags found.")
-
+            tags(notebook)
         elif command == 'exit':
             break
 
